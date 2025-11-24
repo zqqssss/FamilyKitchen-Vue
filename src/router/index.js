@@ -45,4 +45,27 @@ const router = createRouter({
     routes
 })
 
+// ✨✨✨ 新增：全局前置守卫 ✨✨✨
+router.beforeEach((to, from, next) => {
+    // 1. 获取 token (注意 key 要和你登录页面存的一致，之前我们用的是 'adminToken')
+    const token = localStorage.getItem('adminToken')
+
+    // 2. 判断逻辑
+    if (to.path === '/login') {
+        // 如果去的是登录页，且已经有 token，直接转到首页
+        if (token) {
+            next('/')
+        } else {
+            next() // 没 token，允许去登录页
+        }
+    } else {
+        // 如果去的不是登录页（比如首页、订单页），必须有 token
+        if (!token) {
+            next('/login') // 没 token，强制打回登录页
+        } else {
+            next() // 有 token，放行
+        }
+    }
+})
+
 export default router

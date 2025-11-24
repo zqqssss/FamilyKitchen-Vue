@@ -11,12 +11,19 @@
       <div class="right-panel">
         <div class="login-box">
           <h2 class="title">主厨登录</h2>
-          <el-form :model="form" size="large">
-            <el-form-item>
+          <el-form :model="form" :rules="rules" ref="formRef" size="large">
+            <el-form-item prop="username">
               <el-input v-model="form.username" placeholder="账号" prefix-icon="User" />
             </el-form-item>
-            <el-form-item>
-              <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" show-password />
+            <el-form-item prop="password">
+              <el-input
+                  v-model="form.password"
+                  type="password"
+                  placeholder="密码"
+                  prefix-icon="Lock"
+                  show-password
+                  @keyup.enter="handleLogin"
+              />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" class="login-btn" @click="handleLogin" :loading="loading" round>
@@ -31,30 +38,70 @@
 </template>
 
 <script setup>
-// ... (逻辑代码保持不变，与之前一致) ...
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { loginApi } from '@/api/login' // 引入刚才定义的API
 
 const router = useRouter()
 const loading = ref(false)
-const form = reactive({ username: '', password: '' })
+const formRef = ref(null) // 获取表单实例
 
-const handleLogin = () => {
-  loading.value = true
-  setTimeout(() => {
-    if (form.username === 'admin' && form.password === '123456') {
-      localStorage.setItem('adminToken', 'mock-token')
-      ElMessage.success('欢迎回来，开始准备美食吧！')
-      router.push('/')
+const form = reactive({
+  username: '',
+  password: ''
+})
+
+const rules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 5, max: 20, message: '长度在 5 到 20 个字符', trigger: 'blur' }
+  ]
+}
+
+const handleLogin = async () => {
+  // 1. 表单校验
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid) => {
+    if (valid) {
+      loading.value = true
+      try {
+        // 2. 调用后端登录接口
+        const res = await loginApi(form)
+
+        // 3. 登录成功处理
+        // 这里的 res 已经被 request.js 拦截器处理过，直接是 data 部分
+        // 如果你的 request.js 返回的是完整 response，则需要 res.data.token
+
+        // 保存 Token (根据你后端的 VO 结构)
+        localStorage.setItem('adminToken', res.token)
+        localStorage.setItem('adminInfo', JSON.stringify({
+          name: res.name,
+          username: res.userName
+        }))
+
+        ElMessage.success('登录成功，欢迎回来！')
+
+        // 跳转到首页
+        router.push('/')
+
+      } catch (error) {
+        // 错误已经在 request.js 中统一弹窗处理了，这里可以打印日志
+        console.error('登录失败', error)
+      } finally {
+        loading.value = false
+      }
     } else {
-      ElMessage.error('账号或密码错误')
+      console.log('表单校验失败')
+      return false
     }
-    loading.value = false
-  }, 1000)
+  })
 }
 </script>
-
 <style scoped>
 .login-container {
   height: 100vh;
