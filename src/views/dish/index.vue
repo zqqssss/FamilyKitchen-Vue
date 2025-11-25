@@ -20,6 +20,8 @@
         <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
       </el-select>
 
+
+
       <el-button type="primary" @click="fetchData">
         <el-icon style="margin-right: 5px"><Search /></el-icon>查询
       </el-button>
@@ -54,6 +56,13 @@
           <el-tag :type="getCategoryType(scope.row.category)" effect="light" round>
             {{ getCategoryLabel(scope.row.category) }}
           </el-tag>
+        </template>
+      </el-table-column>
+
+      <!-- 新增价格列 -->
+      <el-table-column prop="price" label="价格（元）" width="120" align="center">
+        <template #default="scope">
+          {{ scope.row.price || 0.00 }}
         </template>
       </el-table-column>
 
@@ -104,6 +113,18 @@
           <el-select v-model="form.category" placeholder="请选择分类" style="width: 100%;">
             <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
+        </el-form-item>
+
+        <!-- 新增价格输入框 -->
+        <el-form-item label="菜品价格" prop="price">
+          <el-input
+              v-model="form.price"
+              placeholder="请输入菜品价格 (如: 28.88)"
+              type="number"
+              step="0.01"
+              min="0"
+              style="width: 100%;"
+          />
         </el-form-item>
 
         <el-form-item label="封面图片" prop="coverImage">
@@ -183,14 +204,32 @@ const form = reactive({
   title: '',
   category: null,
   coverImage: '',
-  description: ''
+  description: '',
+  price: 0 // 新增价格
 })
 
 // 表单校验规则
 const rules = {
   title: [{ required: true, message: '请输入菜品名称', trigger: 'blur' }],
   category: [{ required: true, message: '请选择菜品分类', trigger: 'change' }],
-  coverImage: [{ required: true, message: '请上传封面图片', trigger: 'change' }]
+  coverImage: [{ required: true, message: '请上传封面图片', trigger: 'change' }],
+  // 新增价格校验
+  price: [
+    { required: true, message: '请输入菜品价格', trigger: 'blur' },
+    // 优化1：用 validator 自定义校验，兼容字符串/数字类型
+    {
+      validator: (rule, value, callback) => {
+        // 转换为数字（空值/非数字会转为NaN）
+        const num = Number(value)
+        if (isNaN(num) || num < 0) {
+          callback(new Error('价格必须是大于等于0的数字'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
 }
 
 // === 方法 ===
@@ -338,6 +377,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+/* 价格列样式 */
+:deep(.el-table-column--price) {
+  color: #e6a23c; /* 橙色突出价格 */
+  font-weight: 600;
+}
 /* 整体容器样式：增加阴影和圆角 */
 .app-container {
   padding: 24px;
