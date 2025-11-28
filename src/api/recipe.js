@@ -36,3 +36,12 @@ export const deleteRecipe = (id) => {
         params: { id } // 这会将请求变成 /recipe/delete?id=xxx
     })
 }
+
+// 5. 获取菜品列表 (用于统计)
+export const getRecipeList = (params) => {
+    return request({
+        url: '/recipe/page',
+        method: 'get',
+        params: { ...params, pageSize: 1000 } // 获取前1000条
+    })
+}
